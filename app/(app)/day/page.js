@@ -75,7 +75,6 @@ export default function DayPage() {
         branchId: entry.branchId,
         serviceId: entry.serviceId,
         addonIds: entry.addons?.map((a) => a.serviceId) || [],
-        startTime: entry.startTime,
         customAmount: entry.customAmount || 0,
         customLabel: entry.customLabel || null,
       },
@@ -97,7 +96,9 @@ export default function DayPage() {
     loadEntries();
   }
 
-  const mainServices = services.filter((s) => s.category === 'main');
+  // "main" คือแพ็คหลัก 1-5, "special" คือรายการหลักเดี่ยวอื่นๆ (สระผม/นวดตัว/นวดศีรษะ/นวดเท้า)
+  // ทั้งสองหมวดนี้เลือกเป็น "บริการหลัก" ของรายการได้เหมือนกัน ต่างจาก "addon" ที่บวกเพิ่มทีหลัง
+  const mainServices = services.filter((s) => s.category === 'main' || s.category === 'special');
   const addonServices = services.filter((s) => s.category === 'addon');
   const total = entries.reduce((s, e) => s + e.commission, 0);
 

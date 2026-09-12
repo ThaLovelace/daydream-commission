@@ -31,7 +31,7 @@ model Branch {
 model Service {
   id            String       @id @default(cuid())
   name          String
-  category      String       // "main" | "addon"
+  category      String       // "main" (แพ็ค 1-4) | "special" (รายการหลักอื่นๆ) | "addon" (รายการเสริม)
   price         Int
   sortOrder     Int          @default(0) // ลำดับการแสดงผล (แพ็ค 1-4 ก่อน แล้วตามด้วยรายการอื่น)
   effectiveFrom DateTime     @default(now())
@@ -48,7 +48,6 @@ model Entry {
   serviceId    String
   service      Service      @relation("MainService", fields: [serviceId], references: [id])
   entryDate    String       // "YYYY-MM-DD"
-  startTime    String       // "HH:MM"
   customAmount Int          @default(0)
   customLabel  String?
   commission   Int

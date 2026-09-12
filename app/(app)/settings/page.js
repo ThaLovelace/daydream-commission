@@ -116,10 +116,9 @@ export default function SettingsPage() {
     setServices((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   }
 
-  // จัดกลุ่ม: แพ็คหลัก 1-4 ก่อน แล้วตามด้วยรายการหลักอื่น ๆ แล้วค่อยรายการเสริม
-  const mainServices = services.filter((s) => s.category === 'main');
-  const packServices = mainServices.filter((s) => s.sortOrder < 4);
-  const otherMainServices = mainServices.filter((s) => s.sortOrder >= 4);
+  // จัดกลุ่มตามหมวดจริงจากฐานข้อมูล: แพ็คหลัก 1-5 -> รายการหลักอื่นๆ -> รายการเสริม
+  const packServices = services.filter((s) => s.category === 'main');
+  const otherMainServices = services.filter((s) => s.category === 'special');
   const addonServices = services.filter((s) => s.category === 'addon');
 
   return (
@@ -157,7 +156,7 @@ export default function SettingsPage() {
           แตะที่ตัวเลขเพื่อแก้ไขราคาได้เลย — รายการที่บันทึกไปแล้วในอดีตจะไม่เปลี่ยนย้อนหลัง
         </p>
 
-        <p className="text-[11px] font-bold text-primary uppercase mb-1.5">แพ็คหลัก 1–4</p>
+        <p className="text-[11px] font-bold text-primary uppercase mb-1.5">แพ็คหลัก 1-5</p>
         <div className="divide-y divide-line/60 mb-3">
           {packServices.map((s) => (
             <EditableRow key={s.id} service={s} prefix="" onSaved={handleSaved} />

@@ -46,7 +46,6 @@ export default function EntryCard({ entry, index, onClick, onDelete, showDate })
             <span className="font-semibold text-ink-soft">รายการที่ {index + 1}</span>
           )}
           {showDate && <span>{thaiDate(entry.entryDate)}</span>}
-          <span>{entry.startTime}</span>
           <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold ${branchClass}`}>
             {entry.branch?.name}
           </span>

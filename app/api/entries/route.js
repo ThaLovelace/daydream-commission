@@ -21,15 +21,16 @@ async function GET(req) {
   const entries = await prisma.entry.findMany({
     where,
     include: includeRelations,
-    orderBy: [{ entryDate: 'asc' }, { startTime: 'asc' }, { createdAt: 'asc' }],
+    // เรียงตามลำดับที่กรอกจริง (createdAt) แทนเวลาที่พิมพ์เอง — กันปัญหาลำดับสลับตอนกรอกย้อนหลัง
+    orderBy: [{ entryDate: 'asc' }, { createdAt: 'asc' }],
   });
   return NextResponse.json({ entries });
 }
 
 async function POST(req) {
   const body = await req.json();
-  const { userId, branchId, serviceId, addonIds = [], entryDate, startTime, customAmount = 0, customLabel } = body;
-  if (!userId || !branchId || !serviceId || !entryDate || !startTime) {
+  const { userId, branchId, serviceId, addonIds = [], entryDate, customAmount = 0, customLabel } = body;
+  if (!userId || !branchId || !serviceId || !entryDate) {
     return NextResponse.json({ error: 'ข้อมูลไม่ครบ' }, { status: 400 });
   }
 
@@ -44,7 +45,7 @@ async function POST(req) {
 
   const entry = await prisma.entry.create({
     data: {
-      userId, branchId, serviceId, entryDate, startTime,
+      userId, branchId, serviceId, entryDate,
       customAmount: Number(customAmount) || 0,
       customLabel: customLabel || null,
       commission,

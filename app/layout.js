@@ -9,7 +9,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="th">
       <body className="font-sans text-ink antialiased">
-        <div className="min-h-screen mx-auto max-w-md bg-[#eef1f7]">{children}</div>
+        <div className="min-h-screen mx-auto max-w-md bg-[#eef1f7] print:max-w-none print:mx-0 print:bg-white">
+          {children}
+        </div>
       </body>
     </html>
   );

@@ -13,5 +13,12 @@ input, select, textarea, button { font-family: inherit; }
 
 @media print {
   .no-print { display: none !important; }
-  body { background: #fff; }
+  html, body { background: #fff; width: 100%; }
+  @page { size: A4; margin: 12mm; }
+  .print-report { width: 100%; }
+  .print-keep { break-inside: avoid; page-break-inside: avoid; }
+  table { width: 100%; page-break-inside: auto; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
 }
