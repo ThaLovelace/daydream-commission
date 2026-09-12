@@ -77,6 +77,7 @@ export default function DayPage() {
         addonIds: entry.addons?.map((a) => a.serviceId) || [],
         customAmount: entry.customAmount || 0,
         customLabel: entry.customLabel || null,
+        startTime: entry.startTime || null,
       },
     });
     undoTimerRef.current = setTimeout(() => setUndo(null), 6000);

@@ -29,7 +29,7 @@ async function GET(req) {
 
 async function POST(req) {
   const body = await req.json();
-  const { userId, branchId, serviceId, addonIds = [], entryDate, customAmount = 0, customLabel } = body;
+  const { userId, branchId, serviceId, addonIds = [], entryDate, customAmount = 0, customLabel, startTime } = body;
   if (!userId || !branchId || !serviceId || !entryDate) {
     return NextResponse.json({ error: 'ข้อมูลไม่ครบ' }, { status: 400 });
   }
@@ -48,6 +48,7 @@ async function POST(req) {
       userId, branchId, serviceId, entryDate,
       customAmount: Number(customAmount) || 0,
       customLabel: customLabel || null,
+      startTime: startTime || null,
       commission,
       addons: { create: addonServices.map((a) => ({ serviceId: a.id })) },
     },

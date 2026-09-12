@@ -48,6 +48,7 @@ model Entry {
   serviceId    String
   service      Service      @relation("MainService", fields: [serviceId], references: [id])
   entryDate    String       // "YYYY-MM-DD"
+  startTime    String?      // "HH:MM"
   customAmount Int          @default(0)
   customLabel  String?
   commission   Int

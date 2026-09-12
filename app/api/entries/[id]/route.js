@@ -10,7 +10,7 @@ const includeRelations = {
 async function PUT(req, { params }) {
   const { id } = params;
   const body = await req.json();
-  const { branchId, serviceId, addonIds = [], customAmount = 0, customLabel } = body;
+  const { branchId, serviceId, addonIds = [], customAmount = 0, customLabel, startTime } = body;
 
   const service = await prisma.service.findUnique({ where: { id: serviceId } });
   if (!service) return NextResponse.json({ error: 'ไม่พบรายการบริการ' }, { status: 404 });
@@ -28,6 +28,7 @@ async function PUT(req, { params }) {
       branchId, serviceId,
       customAmount: Number(customAmount) || 0,
       customLabel: customLabel || null,
+      startTime: startTime || null,
       commission,
       addons: { create: addonServices.map((a) => ({ serviceId: a.id })) },
     },

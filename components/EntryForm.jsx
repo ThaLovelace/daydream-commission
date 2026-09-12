@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { money } from '../lib/format';
+import { money, nowTime } from '../lib/format';
 
 export default function EntryForm({ branches, mainServices, addonServices, editingEntry, onSave, onCancelEdit, nextCustomerNo }) {
   const [branchId, setBranchId] = useState(branches[0]?.id || '');
@@ -8,6 +8,7 @@ export default function EntryForm({ branches, mainServices, addonServices, editi
   const [addonIds, setAddonIds] = useState(new Set());
   const [customAmount, setCustomAmount] = useState('');
   const [customLabel, setCustomLabel] = useState('');
+  const [startTime, setStartTime] = useState(nowTime());
 
   useEffect(() => {
     if (editingEntry) {
@@ -16,12 +17,14 @@ export default function EntryForm({ branches, mainServices, addonServices, editi
       setAddonIds(new Set(editingEntry.addons.map((a) => a.serviceId)));
       setCustomAmount(editingEntry.customAmount ? String(editingEntry.customAmount) : '');
       setCustomLabel(editingEntry.customLabel || '');
+      setStartTime(editingEntry.startTime || nowTime());
     } else {
       setBranchId(branches[0]?.id || '');
       setServiceId(mainServices[0]?.id || '');
       setAddonIds(new Set());
       setCustomAmount('');
       setCustomLabel('');
+      setStartTime(nowTime());
     }
   }, [editingEntry]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -52,11 +55,13 @@ export default function EntryForm({ branches, mainServices, addonServices, editi
       addonIds: Array.from(addonIds),
       customAmount: customNum,
       customLabel: customLabel || null,
+      startTime: startTime || null,
     });
     if (!editingEntry) {
       setAddonIds(new Set());
       setCustomAmount('');
       setCustomLabel('');
+      setStartTime(nowTime());
     }
   }
 
@@ -83,17 +88,30 @@ export default function EntryForm({ branches, mainServices, addonServices, editi
       {/* main service section */}
       <div className="rounded-xl bg-primary-soft/60 p-3 mb-3">
         <p className="text-[11px] font-bold text-primary-dark uppercase tracking-wide mb-2">รายการหลัก</p>
-        <div className="mb-2">
-          <label className="text-xs text-ink-soft font-semibold block mb-1">สาขา</label>
-          <select
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            className="w-full rounded-lg border border-line px-2.5 py-2.5 text-sm bg-white tap-target"
-          >
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <label className="text-xs text-ink-soft font-semibold block mb-1">สาขา</label>
+            <select
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              className="w-full rounded-lg border border-line px-2.5 py-2.5 text-sm bg-white tap-target"
+            >
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-ink-soft font-semibold block mb-1">เวลาเริ่ม</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="เช่น 14:30"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full rounded-lg border border-line px-2.5 py-2.5 text-sm bg-white tap-target"
+            />
+          </div>
         </div>
         <label className="text-xs text-ink-soft font-semibold block mb-1">บริการหลัก</label>
         <select
