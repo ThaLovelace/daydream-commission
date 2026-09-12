@@ -104,9 +104,7 @@ export default function EntryForm({ branches, mainServices, addonServices, editi
           <div>
             <label className="text-xs text-ink-soft font-semibold block mb-1">เวลาเริ่ม</label>
             <input
-              type="text"
-              inputMode="numeric"
-              placeholder="เช่น 14:30"
+              type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
               className="w-full rounded-lg border border-line px-2.5 py-2.5 text-sm bg-white tap-target"
