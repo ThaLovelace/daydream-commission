@@ -1,8 +1,21 @@
+# dependencies
 node_modules/
-.env
+
+# next.js build output
 .next/
-dist/
-build/
-venv/
-__pycache__/
+out/
+
+# env files — ห้ามขึ้น GitHub เด็ดขาด (มี connection string ของฐานข้อมูลจริง)
+.env
+.env*.local
+
+# ฐานข้อมูล SQLite ตอน dev บนเครื่อง — มีข้อมูลค่าคอมจริงของช่างอยู่ข้างใน ไม่ควร public
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+*.db-journal
+
+# logs / os junk
+npm-debug.log*
 .DS_Store
+Thumbs.db

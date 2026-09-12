@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { background: #eef1f7; }
+
+* { -webkit-tap-highlight-color: transparent; }
+
+input, select, textarea, button { font-family: inherit; }
+
+.tap-target { min-height: 44px; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+}
