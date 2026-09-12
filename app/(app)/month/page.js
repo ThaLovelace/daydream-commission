@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Copy, Printer, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import EntryCard from '../../../components/EntryCard';
-import { money, thaiDate, thaiMonthName, westernDate, todayStr } from '../../../lib/format';
-
+import { money, thaiDate, thaiMonthName, westernDate, todayStr, THAI_MONTHS } from '../../../lib/format';
 const MONTH_BONUS_THRESHOLD = 8000;
 const MONTH_BONUS_RATE = 0.15;
 
