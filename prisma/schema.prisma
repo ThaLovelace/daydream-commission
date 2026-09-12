@@ -1,0 +1,66 @@
+// Daydream Massage & Spa — commission tracker schema
+// Dev default: SQLite (file-based, zero setup).
+// For real deployment (Vercel etc.) switch provider to "postgresql"
+// and point DATABASE_URL at a free Postgres such as Neon or Supabase.
+// See README.md for the exact steps.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  role      String   @default("technician") // technician | admin | owner
+  pin       String?
+  createdAt DateTime @default(now())
+  entries   Entry[]
+}
+
+model Branch {
+  id      String  @id @default(cuid())
+  name    String  @unique
+  entries Entry[]
+}
+
+model Service {
+  id            String       @id @default(cuid())
+  name          String
+  category      String       // "main" | "addon"
+  price         Int
+  effectiveFrom DateTime     @default(now())
+  mainEntries   Entry[]      @relation("MainService")
+  addonUses     EntryAddon[]
+}
+
+model Entry {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
+  branchId     String
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  serviceId    String
+  service      Service      @relation("MainService", fields: [serviceId], references: [id])
+  entryDate    String       // "YYYY-MM-DD"
+  startTime    String       // "HH:MM"
+  customAmount Int          @default(0)
+  customLabel  String?
+  commission   Int
+  createdAt    DateTime     @default(now())
+  addons       EntryAddon[]
+
+  @@index([userId, entryDate])
+}
+
+model EntryAddon {
+  id        String  @id @default(cuid())
+  entryId   String
+  entry     Entry   @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+}
