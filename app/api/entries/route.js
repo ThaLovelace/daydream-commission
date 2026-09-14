@@ -21,8 +21,8 @@ async function GET(req) {
   const entries = await prisma.entry.findMany({
     where,
     include: includeRelations,
-    // เรียงตามลำดับที่กรอกจริง (createdAt) แทนเวลาที่พิมพ์เอง — กันปัญหาลำดับสลับตอนกรอกย้อนหลัง
-    orderBy: [{ entryDate: 'asc' }, { createdAt: 'asc' }],
+    // เรียงตาม sortOrder ที่ผู้ใช้จัดเอง (ลากสลับได้จากหน้าบันทึก) ใช้ createdAt เป็นตัวรองกันลำดับซ้ำ
+    orderBy: [{ entryDate: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
   });
   return NextResponse.json({ entries });
 }
@@ -43,9 +43,17 @@ async function POST(req) {
   const addonSum = addonServices.reduce((s, a) => s + a.price, 0);
   const commission = service.price + addonSum + (Number(customAmount) || 0);
 
+  // รายการใหม่ต่อท้ายลิสของวันนั้นเสมอ (ลากสลับทีหลังได้)
+  const last = await prisma.entry.aggregate({
+    where: { userId, entryDate },
+    _max: { sortOrder: true },
+  });
+  const sortOrder = (last._max.sortOrder ?? -1) + 1;
+
   const entry = await prisma.entry.create({
     data: {
       userId, branchId, serviceId, entryDate,
+      sortOrder,
       customAmount: Number(customAmount) || 0,
       customLabel: customLabel || null,
       startTime: startTime || null,

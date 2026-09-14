@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { money, nowTime } from '../lib/format';
 
-export default function EntryForm({ branches, mainServices, addonServices, editingEntry, onSave, onCancelEdit, nextCustomerNo }) {
+export default function EntryForm({ branches, mainServices, addonServices, editingEntry, onSave, nextCustomerNo }) {
   const [branchId, setBranchId] = useState(branches[0]?.id || '');
   const [serviceId, setServiceId] = useState(mainServices[0]?.id || '');
   const [addonIds, setAddonIds] = useState(new Set());
@@ -66,22 +66,12 @@ export default function EntryForm({ branches, mainServices, addonServices, editi
   }
 
   return (
-    <div className="rounded-2xl bg-white border border-line p-4 shadow-card">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-bold text-primary-dark text-[15px]">
-          {editingEntry ? 'แก้ไขรายการ' : 'เพิ่มรายการ'}
-        </h2>
-        {!editingEntry && (
+    <div>
+      {!editingEntry && (
+        <div className="flex justify-end mb-3">
           <span className="bg-primary-soft text-primary-dark text-xs font-bold px-2.5 py-1 rounded-full">
             รายการที่ {nextCustomerNo} · อัตโนมัติ
           </span>
-        )}
-      </div>
-
-      {editingEntry && (
-        <div className="flex items-center justify-between bg-gold-soft text-gold text-xs font-bold rounded-xl px-3 py-2 mb-3">
-          <span>กำลังแก้ไขรายการนี้อยู่</span>
-          <button onClick={onCancelEdit} className="underline">ยกเลิก</button>
         </div>
       )}
 

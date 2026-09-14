@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Plus, CheckCircle2 } from 'lucide-react';
 import EntryForm from '../../../components/EntryForm';
-import EntryCard from '../../../components/EntryCard';
+import ReorderableEntryList from '../../../components/ReorderableEntryList';
+import Modal from '../../../components/Modal';
 import { money, todayStr, pad } from '../../../lib/format';
 
 export default function DayPage() {
@@ -12,9 +13,12 @@ export default function DayPage() {
   const [date, setDate] = useState(todayStr());
   const [entries, setEntries] = useState([]);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [undo, setUndo] = useState(null); // { payload, label }
+  const [savedToast, setSavedToast] = useState(null); // { label, mode: 'add' | 'edit' }
   const undoTimerRef = useRef(null);
+  const savedTimerRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/session').then((r) => r.json()).then((d) => setUserId(d.user?.id || null));
@@ -34,24 +38,43 @@ export default function DayPage() {
   }, [userId, date]);
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
-  useEffect(() => () => clearTimeout(undoTimerRef.current), []);
+  useEffect(() => () => {
+    clearTimeout(undoTimerRef.current);
+    clearTimeout(savedTimerRef.current);
+  }, []);
 
   function shiftDay(delta) {
     const d = new Date(date + 'T00:00:00');
     d.setDate(d.getDate() + delta);
     setDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
-    setEditingEntry(null);
+    closeForm();
     setUndo(null);
+    setSavedToast(null);
+  }
+
+  function openAddForm() {
+    setEditingEntry(null);
+    setShowForm(true);
+  }
+
+  function openEditForm(entry) {
+    setEditingEntry(entry);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingEntry(null);
   }
 
   async function handleSave(payload) {
-    if (editingEntry) {
+    const isEdit = !!editingEntry;
+    if (isEdit) {
       await fetch(`/api/entries/${editingEntry.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      setEditingEntry(null);
     } else {
       await fetch('/api/entries', {
         method: 'POST',
@@ -59,13 +82,25 @@ export default function DayPage() {
         body: JSON.stringify({ ...payload, userId, entryDate: date }),
       });
     }
+
+    // แจ้งชัดเจนว่าเพิ่ม/แก้ไขอะไรไปแล้ว แทนที่จะปิดฟอร์มเงียบ ๆ
+    const svc = services.find((s) => s.id === payload.serviceId);
+    clearTimeout(savedTimerRef.current);
+    setUndo(null);
+    setSavedToast({ label: svc?.name || 'รายการ', mode: isEdit ? 'edit' : 'add' });
+    savedTimerRef.current = setTimeout(() => setSavedToast(null), 2600);
+
+    closeForm();
     loadEntries();
   }
 
   async function handleDelete(entry) {
     // EntryCard ยืนยันการลบมาให้แล้ว (แตะสองครั้ง) — ตรงนี้ลบได้เลย ไม่ต้องเด้งป็อปอัพซ้ำ
-    if (editingEntry?.id === entry.id) setEditingEntry(null);
+    if (editingEntry?.id === entry.id) closeForm();
     await fetch(`/api/entries/${entry.id}`, { method: 'DELETE' });
+
+    clearTimeout(savedTimerRef.current);
+    setSavedToast(null);
 
     // เก็บข้อมูลไว้เผื่อกด "เลิกทำ" — ลบผิดแล้วกู้คืนได้ทันทีโดยไม่ต้องพิมพ์ใหม่ทั้งหมด
     clearTimeout(undoTimerRef.current);
@@ -97,6 +132,23 @@ export default function DayPage() {
     loadEntries();
   }
 
+  // ลากสลับตำแหน่งในลิส: อัปเดตหน้าจอทันที (optimistic) แล้วค่อยบันทึกลำดับใหม่ลง DB เบื้องหลัง
+  async function handleReorder(orderedIds) {
+    const prevEntries = entries;
+    const byId = new Map(entries.map((e) => [e.id, e]));
+    const next = orderedIds.map((id) => byId.get(id)).filter(Boolean);
+    setEntries(next);
+    try {
+      await fetch('/api/entries/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, entryDate: date, orderedIds }),
+      });
+    } catch {
+      setEntries(prevEntries); // เซฟไม่สำเร็จ ย้อนกลับลำดับเดิม
+    }
+  }
+
   // "main" คือแพ็คหลัก 1-5, "special" คือรายการหลักเดี่ยวอื่นๆ (สระผม/นวดตัว/นวดศีรษะ/นวดเท้า)
   // ทั้งสองหมวดนี้เลือกเป็น "บริการหลัก" ของรายการได้เหมือนกัน ต่างจาก "addon" ที่บวกเพิ่มทีหลัง
   const mainServices = services.filter((s) => s.category === 'main' || s.category === 'special');
@@ -116,7 +168,7 @@ export default function DayPage() {
         <input
           type="date"
           value={date}
-          onChange={(e) => { setDate(e.target.value); setEditingEntry(null); setUndo(null); }}
+          onChange={(e) => { setDate(e.target.value); closeForm(); setUndo(null); setSavedToast(null); }}
           className="flex-1 text-center rounded-xl border border-line py-2.5 text-sm tap-target"
         />
         <button onClick={() => shiftDay(1)} className="w-11 h-11 flex items-center justify-center rounded-xl border border-line tap-target">
@@ -124,45 +176,46 @@ export default function DayPage() {
         </button>
       </div>
 
-      <EntryForm
-        branches={branches}
-        mainServices={mainServices}
-        addonServices={addonServices}
-        editingEntry={editingEntry}
-        onSave={handleSave}
-        onCancelEdit={() => setEditingEntry(null)}
-        nextCustomerNo={entries.length + 1}
-      />
-
       <div>
         <div className="flex items-center justify-between mb-0.5 px-0.5">
-          <h2 className="font-bold text-primary-dark text-[15px]">รายการวันนี้</h2>
-          <span className="text-xs text-ink-faint">แตะรายการเพื่อแก้ไข</span>
+          <h2 className="font-bold text-primary-dark text-[15px]">
+            รายการวันนี้{entries.length > 0 ? ` (${entries.length})` : ''}
+          </h2>
+          {entries.length > 0 && (
+            <button
+              onClick={openAddForm}
+              className="flex items-center gap-1 bg-primary text-white text-xs font-bold pl-2.5 pr-3 py-2 rounded-full tap-target"
+            >
+              <Plus size={14} /> เพิ่มรายการ
+            </button>
+          )}
         </div>
         {entries.length > 1 && (
           <p className="text-[11px] text-ink-faint px-0.5 mb-2">
-            ลบรายการไหนก็ได้อย่างอิสระ ไม่ต้องลบทั้งหมดแล้วพิมพ์ใหม่ — ลำดับเลขจะเรียงให้เองอัตโนมัติ
+            แตะรายการเพื่อแก้ไข · กดค้างที่ไอคอน ⠿ เพื่อลากสลับตำแหน่ง · ลบรายการไหนก็ได้อย่างอิสระ ลำดับเลขจะเรียงให้เองอัตโนมัติ
           </p>
         )}
 
         {loading ? (
           <p className="text-center text-ink-faint py-8 text-sm">กำลังโหลด...</p>
         ) : entries.length === 0 ? (
-          <div className="text-center text-ink-faint py-10 text-sm bg-white rounded-2xl border border-dashed border-line">
-            ยังไม่มีรายการของวันนี้
-          </div>
+          <button
+            onClick={openAddForm}
+            className="w-full flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed border-primary/30 bg-white py-12 tap-target active:bg-primary-soft/30"
+          >
+            <span className="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center">
+              <Plus size={26} />
+            </span>
+            <span className="font-bold text-[15px] text-primary-dark">เพิ่มรายการแรกของวันนี้</span>
+            <span className="text-xs text-ink-faint">แตะเพื่อเริ่มบันทึกค่าคอม</span>
+          </button>
         ) : (
-          <div className="space-y-2.5">
-            {entries.map((e, i) => (
-              <EntryCard
-                key={e.id}
-                entry={e}
-                index={i}
-                onClick={setEditingEntry}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+          <ReorderableEntryList
+            entries={entries}
+            onClick={openEditForm}
+            onDelete={handleDelete}
+            onReorder={handleReorder}
+          />
         )}
 
         {undo && (
@@ -174,6 +227,17 @@ export default function DayPage() {
           </div>
         )}
 
+        {savedToast && (
+          <div className="flex items-center gap-2 rounded-2xl bg-primary-dark text-white px-4 py-3 mt-2.5 text-sm">
+            <CheckCircle2 size={16} className="flex-none opacity-90" />
+            <span className="opacity-90">
+              {savedToast.mode === 'edit'
+                ? <>บันทึกการแก้ไข &ldquo;{savedToast.label}&rdquo; แล้ว</>
+                : <>เพิ่ม &ldquo;{savedToast.label}&rdquo; แล้ว</>}
+            </span>
+          </div>
+        )}
+
         {entries.length > 0 && (
           <div className="flex items-center justify-between rounded-2xl bg-primary-dark text-white px-5 py-4 mt-3">
             <span className="text-sm opacity-85 font-semibold">รวมค่าคอมวันนี้</span>
@@ -181,6 +245,17 @@ export default function DayPage() {
           </div>
         )}
       </div>
+
+      <Modal open={showForm} onClose={closeForm} title={editingEntry ? 'แก้ไขรายการ' : 'เพิ่มรายการ'}>
+        <EntryForm
+          branches={branches}
+          mainServices={mainServices}
+          addonServices={addonServices}
+          editingEntry={editingEntry}
+          onSave={handleSave}
+          nextCustomerNo={entries.length + 1}
+        />
+      </Modal>
     </div>
   );
 }
