@@ -2,13 +2,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const PIN_LENGTH = 6;
+
 export default function LoginPage() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
-  const [picked, setPicked] = useState(null);
+  const [pickedUserId, setPickedUserId] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [pin, setPin] = useState('');
   const [newName, setNewName] = useState('');
   const [newPin, setNewPin] = useState('');
-  const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +23,25 @@ export default function LoginPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  function handlePick(user) {
+    setPickedUserId(user.id);
+    setSelectedUser(user);
+    setPin('');
+    setError('');
+  }
+
+  function addDigit(value) {
+    if (pin.length >= PIN_LENGTH || busy) return;
+    setPin((prev) => prev + value);
+    setError('');
+  }
+
+  function removeDigit() {
+    if (busy) return;
+    setPin((prev) => prev.slice(0, -1));
+    setError('');
+  }
+
   async function addUser() {
     const name = newName.trim();
     const safePin = newPin.trim();
@@ -28,6 +50,7 @@ export default function LoginPage() {
       setError('กรุณาใส่ชื่อช่าง');
       return;
     }
+
     if (!/^\d{4,6}$/.test(safePin)) {
       setError('PIN ต้องเป็นตัวเลข 4-6 หลัก');
       return;
@@ -51,24 +74,23 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      setUsers((u) => [...u, data.user]);
+      setUsers((current) => [...current, data.user]);
       setNewName('');
       setNewPin('');
-      setPicked(data.user.id);
+      setPickedUserId(data.user.id);
+      setSelectedUser(data.user);
       setPin('');
-      setError('');
     }
   }
 
   async function login() {
-    if (!picked) {
+    if (!pickedUserId) {
       setError('กรุณาเลือกชื่อช่างก่อน');
       return;
     }
 
-    const safePin = pin.trim();
-    if (!/^\d{4,6}$/.test(safePin)) {
-      setError('กรุณากรอก PIN 4-6 หลัก');
+    if (pin.length < 4 || pin.length > PIN_LENGTH) {
+      setError('PIN ต้องมี 4-6 หลัก');
       return;
     }
 
@@ -78,7 +100,7 @@ export default function LoginPage() {
     const res = await fetch('/api/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: picked, pin: safePin }),
+      body: JSON.stringify({ userId: pickedUserId, pin }),
     });
 
     const data = await res.json();
@@ -86,22 +108,111 @@ export default function LoginPage() {
 
     if (!res.ok) {
       setError(data.error || 'PIN ไม่ถูกต้อง');
+      setPin('');
       return;
     }
 
     router.push('/day');
   }
 
-  return (
-    <div className="min-h-screen mx-auto max-w-md flex flex-col">
-      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-6 pt-12 pb-9 rounded-b-[28px]">
-        <p className="text-[11px] tracking-wider uppercase opacity-70">daydream massage &amp; spa</p>
-        <h1 className="text-lg font-semibold mt-2">เข้าสู่ระบบด้วยชื่อและ PIN</h1>
+  function goBackToUserList() {
+    setPickedUserId(null);
+    setSelectedUser(null);
+    setPin('');
+    setError('');
+  }
+
+  if (!pickedUserId || !selectedUser) {
+    return (
+      <div className="min-h-screen mx-auto max-w-md flex flex-col bg-[#f8f4ef]">
+        <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-6 pt-12 pb-9 rounded-b-[28px] shadow-lg shadow-primary/20">
+          <p className="text-[11px] tracking-wider uppercase opacity-75">daydream massage &amp; spa</p>
+          <h1 className="text-lg font-semibold mt-2">เลือกช่างของคุณ</h1>
+        </div>
+
+        <div className="px-6 py-6 flex-1">
+          <p className="text-sm text-ink-soft mb-5">กดเลือกชื่อช่าง แล้วกรอก PIN เพื่อเข้าสู่ระบบ</p>
+
+          {loading ? (
+            <p className="text-sm text-ink-faint">กำลังโหลด...</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {users.map((user) => (
+                <button
+                  key={user.id}
+                  onClick={() => handlePick(user)}
+                  className="rounded-2xl border-2 border-line bg-white p-4 text-center transition hover:border-primary hover:bg-primary-soft tap-target"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary-soft text-primary-dark flex items-center justify-center text-lg font-bold mx-auto mb-2">
+                    {user.name.slice(0, 2)}
+                  </div>
+                  <p className="text-[15px] font-semibold">{user.name}</p>
+                  <p className="text-xs text-ink-soft">ช่าง</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 rounded-2xl border border-line bg-white p-3">
+            <p className="mb-2 text-sm font-semibold text-ink-soft">เพิ่มช่างใหม่</p>
+            <div className="flex gap-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="ชื่อช่าง"
+                className="flex-1 rounded-xl border border-line px-3 py-2.5 text-sm tap-target"
+              />
+              <input
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="PIN"
+                type="password"
+                className="w-24 rounded-xl border border-line px-3 py-2.5 text-sm tap-target"
+              />
+            </div>
+            <button
+              onClick={addUser}
+              disabled={busy}
+              className="mt-3 w-full rounded-xl border border-line px-4 py-2.5 text-sm font-semibold bg-white tap-target disabled:opacity-50"
+            >
+              เพิ่มช่าง
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="px-6 py-6 flex-1">
-        <p className="text-sm text-ink-soft mb-4">
-          เลือกชื่อของคุณ แล้วใส่ PIN เพื่อเข้าระบบ
+    );
+  }
+
+  return (
+    <div className="min-h-screen mx-auto max-w-md flex flex-col bg-[#f8f4ef]">
+      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-6 pt-12 pb-9 rounded-b-[28px] shadow-lg shadow-primary/20">
+        <button onClick={goBackToUserList} className="text-sm opacity-80 mb-2">
+          ← เปลี่ยนช่าง
+        </button>
+        <h1 className="text-lg font-semibold">กรอก PIN</h1>
+      </div>
+
+      <div className="px-6 py-6 flex-1 flex flex-col">
+        <p className="text-sm text-ink-soft mb-5">
+          ช่าง: <span className="font-bold text-primary-dark">{selectedUser.name}</span>
         </p>
+
+        <div className="mb-6 flex justify-center">
+          <div className="flex gap-2">
+            {[0, 1, 2, 3, 4, 5].map((index) => (
+              <div
+                key={index}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg transition ${
+                  index < pin.length ? 'bg-primary text-white' : 'bg-line text-ink-faint'
+                }`}
+              >
+                {index < pin.length ? '●' : '○'}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -109,83 +220,42 @@ export default function LoginPage() {
           </div>
         )}
 
-        {loading ? (
-          <p className="text-sm text-ink-faint">กำลังโหลด...</p>
-        ) : (
-          <div className="space-y-2.5">
-            {users.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => {
-                  setPicked(u.id);
-                  setPin('');
-                  setError('');
-                }}
-                className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition tap-target ${
-                  picked === u.id ? 'border-primary bg-primary-soft' : 'border-line bg-white'
-                }`}
-              >
-                <div className="w-10 h-10 rounded-full bg-primary-soft text-primary-dark flex items-center justify-center text-sm font-bold flex-none">
-                  {u.name.slice(0, 2)}
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold">{u.name}</p>
-                  <p className="text-xs text-ink-soft">ช่าง</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+            <button
+              key={digit}
+              onClick={() => addDigit(String(digit))}
+              disabled={pin.length >= PIN_LENGTH || busy}
+              className="rounded-2xl border-2 border-line bg-white py-4 text-2xl font-bold tap-target hover:border-primary hover:bg-primary-soft disabled:opacity-50"
+            >
+              {digit}
+            </button>
+          ))}
+        </div>
 
-        {picked && (
-          <div className="mt-5">
-            <label className="mb-2 block text-sm font-medium text-ink-soft">PIN ของช่างที่เลือก</label>
-            <input
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="กรอก PIN 4-6 หลัก"
-              className="w-full rounded-xl border border-line px-3.5 py-2.5 text-sm tap-target"
-              type="password"
-            />
-          </div>
-        )}
-
-        <div className="mt-5 rounded-2xl border border-line bg-white p-3">
-          <p className="mb-2 text-sm font-semibold text-ink-soft">เพิ่มช่างใหม่</p>
-          <div className="flex gap-2">
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="ชื่อช่าง"
-              className="flex-1 rounded-xl border border-line px-3.5 py-2.5 text-sm tap-target"
-            />
-            <input
-              value={newPin}
-              onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="PIN"
-              className="w-24 rounded-xl border border-line px-3 py-2.5 text-sm tap-target"
-              type="password"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <button
-            onClick={addUser}
-            disabled={busy}
-            className="mt-3 w-full rounded-xl border border-line px-4 py-2.5 text-sm font-semibold bg-white tap-target"
+            onClick={() => addDigit('0')}
+            disabled={pin.length >= PIN_LENGTH || busy}
+            className="rounded-2xl border-2 border-line bg-white py-4 text-2xl font-bold tap-target hover:border-primary hover:bg-primary-soft disabled:opacity-50"
           >
-            เพิ่มช่าง
+            0
+          </button>
+          <button
+            onClick={removeDigit}
+            disabled={!pin || busy}
+            className="rounded-2xl border-2 border-red-200 bg-red-50 py-4 text-lg font-bold text-red-600 tap-target hover:bg-red-100 disabled:opacity-50"
+          >
+            ลบ
           </button>
         </div>
 
         <button
           onClick={login}
-          disabled={!picked || busy || !pin.trim()}
-          className="w-full mt-8 rounded-2xl bg-primary text-white font-bold py-3.5 tap-target disabled:opacity-40"
+          disabled={pin.length < 4 || busy}
+          className="mt-auto w-full rounded-2xl bg-primary text-white font-bold py-4 tap-target disabled:opacity-40 text-lg"
         >
-          เข้าใช้งาน
+          {busy ? 'กำลังตรวจสอบ...' : 'เข้าใช้งาน'}
         </button>
       </div>
     </div>
