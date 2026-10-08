@@ -2,8 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const PIN_LENGTH = 6;
-
 export default function LoginPage() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
@@ -31,7 +29,7 @@ export default function LoginPage() {
   }
 
   function addDigit(value) {
-    if (pin.length >= PIN_LENGTH || busy) return;
+    if (pin.length >= 4 || busy) return; // Only allow 4 digits
     setPin((prev) => prev + value);
     setError('');
   }
@@ -51,8 +49,8 @@ export default function LoginPage() {
       return;
     }
 
-    if (!/^\d{4,6}$/.test(safePin)) {
-      setError('PIN ต้องเป็นตัวเลข 4-6 หลัก');
+    if (!/^\d{4}$/.test(safePin)) {
+      setError('PIN ต้องเป็นตัวเลข 4 หลักเท่านั้น');
       return;
     }
 
@@ -89,8 +87,8 @@ export default function LoginPage() {
       return;
     }
 
-    if (pin.length < 4 || pin.length > PIN_LENGTH) {
-      setError('PIN ต้องมี 4-6 หลัก');
+    if (pin.length !== 4) {
+      setError('PIN ต้องมี 4 หลัก');
       return;
     }
 
@@ -131,7 +129,7 @@ export default function LoginPage() {
         </div>
 
         <div className="px-6 py-6 flex-1">
-          <p className="text-sm text-ink-soft mb-5">กดเลือกชื่อช่าง แล้วกรอก PIN เพื่อเข้าสู่ระบบ</p>
+          <p className="text-sm text-ink-soft mb-5">กดเลือกชื่อช่าง แล้วกรอก PIN 4 หลัก เพื่อเข้าสู่ระบบ</p>
 
           {loading ? (
             <p className="text-sm text-ink-faint">กำลังโหลด...</p>
@@ -164,12 +162,12 @@ export default function LoginPage() {
               />
               <input
                 value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={4}
                 placeholder="PIN"
                 type="password"
-                className="w-24 rounded-xl border border-line px-3 py-2.5 text-sm tap-target"
+                className="w-20 rounded-xl border border-line px-3 py-2.5 text-sm tap-target"
               />
             </div>
             <button
@@ -199,12 +197,12 @@ export default function LoginPage() {
           ช่าง: <span className="font-bold text-primary-dark">{selectedUser.name}</span>
         </p>
 
-        <div className="mb-6 flex justify-center">
+        <div className="mb-8 flex justify-center">
           <div className="flex gap-2">
-            {[0, 1, 2, 3, 4, 5].map((index) => (
+            {[0, 1, 2, 3].map((index) => (
               <div
                 key={index}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg transition ${
+                className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl transition ${
                   index < pin.length ? 'bg-primary text-white' : 'bg-line text-ink-faint'
                 }`}
               >
@@ -225,8 +223,8 @@ export default function LoginPage() {
             <button
               key={digit}
               onClick={() => addDigit(String(digit))}
-              disabled={pin.length >= PIN_LENGTH || busy}
-              className="rounded-2xl border-2 border-line bg-white py-4 text-2xl font-bold tap-target hover:border-primary hover:bg-primary-soft disabled:opacity-50"
+              disabled={pin.length >= 4 || busy}
+              className="rounded-2xl border-2 border-line bg-white py-5 text-2xl font-bold tap-target hover:border-primary hover:bg-primary-soft disabled:opacity-50"
             >
               {digit}
             </button>
@@ -236,15 +234,15 @@ export default function LoginPage() {
         <div className="grid grid-cols-2 gap-3 mb-6">
           <button
             onClick={() => addDigit('0')}
-            disabled={pin.length >= PIN_LENGTH || busy}
-            className="rounded-2xl border-2 border-line bg-white py-4 text-2xl font-bold tap-target hover:border-primary hover:bg-primary-soft disabled:opacity-50"
+            disabled={pin.length >= 4 || busy}
+            className="rounded-2xl border-2 border-line bg-white py-5 text-2xl font-bold tap-target hover:border-primary hover:bg-primary-soft disabled:opacity-50"
           >
             0
           </button>
           <button
             onClick={removeDigit}
             disabled={!pin || busy}
-            className="rounded-2xl border-2 border-red-200 bg-red-50 py-4 text-lg font-bold text-red-600 tap-target hover:bg-red-100 disabled:opacity-50"
+            className="rounded-2xl border-2 border-red-200 bg-red-50 py-5 text-lg font-bold text-red-600 tap-target hover:bg-red-100 disabled:opacity-50"
           >
             ลบ
           </button>
@@ -252,7 +250,7 @@ export default function LoginPage() {
 
         <button
           onClick={login}
-          disabled={pin.length < 4 || busy}
+          disabled={pin.length !== 4 || busy}
           className="mt-auto w-full rounded-2xl bg-primary text-white font-bold py-4 tap-target disabled:opacity-40 text-lg"
         >
           {busy ? 'กำลังตรวจสอบ...' : 'เข้าใช้งาน'}
